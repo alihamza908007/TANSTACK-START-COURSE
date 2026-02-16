@@ -20,7 +20,7 @@ export function NavPrimary({ items }: NavPrimaryProps) {
               <SidebarMenuItem key={index}>
                 <SidebarMenuButton asChild size="sm">
                   <Link
-                    activeProps={{ 'data-active ': true }}
+                    activeProps={{ 'data-active': true }}
                     to={item.to}
                     activeOptions={item.activeOptions}
                   >

@@ -5,5 +5,14 @@ export const Route = createFileRoute('/dashboard/import')({
 })
 
 function RouteComponent() {
-  return <div>Hello "/dashboard/import"!</div>
+  return (
+    <div className="flex flex-1 items-center justify-center py-8">
+      <div className="w-full max-w-2xl space-y-6 px-4">
+        <div className="text-center">
+          <h1>Import Content</h1>
+          <p>Import your content from other sources</p>
+        </div>
+      </div>
+    </div>
+  )
 }
