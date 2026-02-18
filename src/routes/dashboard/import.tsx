@@ -14,19 +14,26 @@ import {
 } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { scrapeUrlFn } from '@/data/items'
+import { mapUrlFn, scrapeUrlFn } from '@/data/items'
 import { bulkImportSchema, importSchema } from '@/schemas/import'
+import { type SearchResultWeb } from '@mendable/firecrawl-js'
 import { useForm } from '@tanstack/react-form'
 import { createFileRoute } from '@tanstack/react-router'
 import { Globe, LinkIcon, Loader2 } from 'lucide-react'
-import { useTransition } from 'react'
+import { useState, useTransition } from 'react'
+import { toast } from 'sonner'
 
 export const Route = createFileRoute('/dashboard/import')({
   component: RouteComponent,
 })
 
 function RouteComponent() {
-  const [ispending, startTransition] = useTransition()
+  const [isPending, startTransition] = useTransition()
+
+  //bulk import state
+  const [discoveredLinks, setDiscoveredLinks] = useState<
+    Array<SearchResultWeb>
+  >([])
   const form = useForm({
     defaultValues: {
       url: '',
@@ -38,6 +45,7 @@ function RouteComponent() {
       startTransition(async () => {
         console.log(value)
         await scrapeUrlFn({ data: value })
+        toast.success('URL scraped successfully!')
       })
     },
   })
@@ -50,8 +58,11 @@ function RouteComponent() {
       onSubmit: bulkImportSchema,
     },
     onSubmit: ({ value }) => {
-      startTransition(() => {
+      startTransition(async () => {
         console.log(value)
+        const data = await mapUrlFn({ data: value })
+        setDiscoveredLinks(data.links)
+        toast.success('Bulk import started successfully!')
       })
     },
   })
@@ -122,8 +133,8 @@ function RouteComponent() {
                         )
                       }}
                     />
-                    <Button type="submit" disabled={ispending}>
-                      {ispending ? (
+                    <Button type="submit" disabled={isPending}>
+                      {isPending ? (
                         <>
                           <Loader2 className="size-4 animate-spin" />
                           Importing...
@@ -214,8 +225,8 @@ function RouteComponent() {
                         )
                       }}
                     />
-                    <Button type="submit" disabled={ispending}>
-                      {ispending ? (
+                    <Button type="submit" disabled={isPending}>
+                      {isPending ? (
                         <>
                           <Loader2 className="size-4 animate-spin" />
                           Importing...
@@ -226,6 +237,19 @@ function RouteComponent() {
                     </Button>
                   </FieldGroup>
                 </form>
+                {discoveredLinks.length > 0 && (
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm font-medium">
+                        Found {discoveredLinks.length} links from the provided
+                        URL.
+                      </p>
+                      <Button variant="outline" size="sm">
+                        Select All
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>

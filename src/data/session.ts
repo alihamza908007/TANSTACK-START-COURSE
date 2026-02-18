@@ -6,8 +6,8 @@ export const getSessionFn = createServerFn({ method: 'GET' }).handler(
   async () => {
     const headers = getRequestHeaders()
     const session = await auth.api.getSession({ headers })
-    if (!session) {
-      redirect({ to: '/login' })
+    if (!session?.user) {
+      throw redirect({ to: '/login' })
     }
     return session
   },

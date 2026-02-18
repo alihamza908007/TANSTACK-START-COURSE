@@ -12,7 +12,6 @@ export const Route = createFileRoute('/dashboard')({
   component: RouteComponent,
   loader: async () => {
     const session = await getSessionFn()
-    if (!session) throw new Response('Unauthorized', { status: 401 })
     return {
       user: session.user,
     }
