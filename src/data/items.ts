@@ -3,16 +3,16 @@ import { firecrawl } from '@/lib/firecrawl'
 import { extractSchema, importSchema } from '@/schemas/import'
 import { createServerFn } from '@tanstack/react-start'
 import z from 'zod'
-import { getSessionFn } from './session'
+import { authFnMiddleware } from '@/middlewares/auth'
 
 export const scrapeUrlFn = createServerFn({ method: 'POST' })
+  .middleware([authFnMiddleware])
   .inputValidator(importSchema)
-  .handler(async ({ data }) => {
-    const user = await getSessionFn()
+  .handler(async ({ data, context }) => {
     const item = await prisma.savedItem.create({
       data: {
         url: data.url,
-        userId: user?.user.id,
+        userId: context.session?.user.id,
         status: 'PROCESSING',
       },
     })
@@ -23,11 +23,20 @@ export const scrapeUrlFn = createServerFn({ method: 'POST' })
           {
             type: 'json',
             schema: extractSchema,
+            //
           },
         ],
         onlyMainContent: true,
       })
       const jsonData = result.json as z.infer<typeof extractSchema>
+      console.log('Extracted JSON Data:', jsonData)
+      let publishedAt = null
+      if (jsonData.publishedAt) {
+        const parsed = new Date(jsonData.publishedAt)
+        if (!isNaN(parsed.getTime())) {
+          publishedAt = parsed
+        }
+      }
       const updatedItem = await prisma.savedItem.update({
         where: {
           id: item.id,
@@ -37,7 +46,7 @@ export const scrapeUrlFn = createServerFn({ method: 'POST' })
           content: result.markdown || null,
           ogImage: result.metadata?.ogImage || null,
           author: jsonData.author || null,
-          publishedAt: jsonData.publishedAt || null,
+          publishedAt: publishedAt,
           status: 'COMPLETED',
         },
       })
