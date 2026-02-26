@@ -15,13 +15,14 @@ import {
 } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { mapUrlFn, scrapeUrlFn } from '@/data/items'
+import { bulkScrapeURLsFn, mapUrlFn, scrapeUrlFn } from '@/data/items'
 import { bulkImportSchema, importSchema } from '@/schemas/import'
 import { type SearchResultWeb } from '@mendable/firecrawl-js'
 import { useForm } from '@tanstack/react-form'
 import { createFileRoute } from '@tanstack/react-router'
 import { Globe, LinkIcon, Loader2 } from 'lucide-react'
 import { useState, useTransition } from 'react'
+import { start } from 'repl'
 import { toast } from 'sonner'
 
 export const Route = createFileRoute('/dashboard/import')({
@@ -30,6 +31,7 @@ export const Route = createFileRoute('/dashboard/import')({
 
 function RouteComponent() {
   const [isPending, startTransition] = useTransition()
+  const [bulkIsPending, startBulkTransition] = useTransition()
 
   //bulk import state
   const [discoveredLinks, setDiscoveredLinks] = useState<
@@ -51,6 +53,17 @@ function RouteComponent() {
       newSelected.add(url)
     }
     setSelectedUrls(newSelected)
+  }
+  function handleBulkImport() {
+    startBulkTransition(async () => {
+      if (selectedUrls.size === 0) {
+        toast.error('Please select at least one URL to import')
+      }
+      const data = await bulkScrapeURLsFn({
+        data: { urls: Array.from(selectedUrls) },
+      })
+      toast.success(`Started importing ${selectedUrls.size} URLs!`)
+    })
   }
 
   const form = useForm({
@@ -298,7 +311,20 @@ function RouteComponent() {
                         </label>
                       ))}
                     </div>
-                    <Button className="w-full">Import</Button>
+                    <Button
+                      onClick={handleBulkImport}
+                      disabled={bulkIsPending}
+                      className="w-full"
+                    >
+                      {bulkIsPending ? (
+                        <>
+                          <Loader2 className="size-4 animate-spin" />
+                          Importing...
+                        </>
+                      ) : (
+                        'Import'
+                      )}
+                    </Button>
                   </div>
                 )}
               </CardContent>
