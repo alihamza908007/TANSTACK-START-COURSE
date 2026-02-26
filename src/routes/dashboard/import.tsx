@@ -6,6 +6,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
   Field,
   FieldError,
@@ -34,6 +35,24 @@ function RouteComponent() {
   const [discoveredLinks, setDiscoveredLinks] = useState<
     Array<SearchResultWeb>
   >([])
+  const [selectedUrls, setSelectedUrls] = useState<Set<string>>(new Set())
+  function handleSelectAll() {
+    if (selectedUrls.size === discoveredLinks.length) {
+      setSelectedUrls(new Set())
+    } else {
+      setSelectedUrls(new Set(discoveredLinks.map((link) => link.url)))
+    }
+  }
+  function handleToggleUrl(url: string) {
+    const newSelected = new Set(selectedUrls)
+    if (newSelected.has(url)) {
+      newSelected.delete(url)
+    } else {
+      newSelected.add(url)
+    }
+    setSelectedUrls(newSelected)
+  }
+
   const form = useForm({
     defaultValues: {
       url: '',
@@ -157,7 +176,7 @@ function RouteComponent() {
                   other platform that has a public API.
                 </CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className="space-y-4">
                 <form
                   onSubmit={(e) => {
                     e.preventDefault()
@@ -244,10 +263,42 @@ function RouteComponent() {
                         Found {discoveredLinks.length} links from the provided
                         URL.
                       </p>
-                      <Button variant="outline" size="sm">
-                        Select All
+                      <Button
+                        onClick={handleSelectAll}
+                        variant="outline"
+                        size="sm"
+                      >
+                        {selectedUrls.size === discoveredLinks.length
+                          ? 'Deselect All'
+                          : 'Select All'}
                       </Button>
                     </div>
+                    <div className="max-h-80 space-y-2 overflow-y-auto rounded-md border p-4">
+                      {discoveredLinks.map((link) => (
+                        <label
+                          key={link.url}
+                          className="hover:bg-muted/50 flex cursor-pointer items-start gap-3 rounded-md p-2"
+                        >
+                          <Checkbox
+                            checked={selectedUrls.has(link.url)}
+                            onCheckedChange={() => handleToggleUrl(link.url)}
+                            className="mt-0.5"
+                          />
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-sm font-medium">
+                              {link.title}
+                            </p>
+                            <p className="truncate text-xs text-muted-foreground ">
+                              {link.description}
+                            </p>
+                            <p className="truncate text-xs text-muted-foreground">
+                              {link.url}
+                            </p>
+                          </div>
+                        </label>
+                      ))}
+                    </div>
+                    <Button className="w-full">Import</Button>
                   </div>
                 )}
               </CardContent>
