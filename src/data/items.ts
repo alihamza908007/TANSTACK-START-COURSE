@@ -120,7 +120,7 @@ export const bulkScrapeURLsFn = createServerFn({ method: 'POST' })
             publishedAt = parsed
           }
         }
-        const updatedItem = await prisma.savedItem.update({
+        await prisma.savedItem.update({
           where: {
             id: item.id,
           },
@@ -133,9 +133,8 @@ export const bulkScrapeURLsFn = createServerFn({ method: 'POST' })
             status: 'COMPLETED',
           },
         })
-        return updatedItem
       } catch {
-        const failedItem = await prisma.savedItem.update({
+        await prisma.savedItem.update({
           where: {
             id: item.id,
           },
@@ -143,7 +142,6 @@ export const bulkScrapeURLsFn = createServerFn({ method: 'POST' })
             status: 'FAILED',
           },
         })
-        return failedItem
       }
     }
   })
