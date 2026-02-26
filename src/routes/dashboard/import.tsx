@@ -22,7 +22,6 @@ import { useForm } from '@tanstack/react-form'
 import { createFileRoute } from '@tanstack/react-router'
 import { Globe, LinkIcon, Loader2 } from 'lucide-react'
 import { useState, useTransition } from 'react'
-import { start } from 'repl'
 import { toast } from 'sonner'
 
 export const Route = createFileRoute('/dashboard/import')({
@@ -59,7 +58,7 @@ function RouteComponent() {
       if (selectedUrls.size === 0) {
         toast.error('Please select at least one URL to import')
       }
-      const data = await bulkScrapeURLsFn({
+      await bulkScrapeURLsFn({
         data: { urls: Array.from(selectedUrls) },
       })
       toast.success(`Started importing ${selectedUrls.size} URLs!`)
@@ -322,7 +321,7 @@ function RouteComponent() {
                           Importing...
                         </>
                       ) : (
-                        'Import'
+                        `Import ${selectedUrls.size} URLs`
                       )}
                     </Button>
                   </div>
