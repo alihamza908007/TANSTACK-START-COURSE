@@ -4,6 +4,7 @@ import { bulkImportSchema, extractSchema, importSchema } from '@/schemas/import'
 import { createServerFn } from '@tanstack/react-start'
 import z from 'zod'
 import { authFnMiddleware } from '@/middlewares/auth'
+import { notFound } from '@tanstack/react-router'
 
 export const scrapeUrlFn = createServerFn({ method: 'POST' })
   .middleware([authFnMiddleware])
@@ -158,4 +159,20 @@ export const getItemsFn = createServerFn({ method: 'GET' })
       },
     })
     return items
+  })
+
+export const getItemById = createServerFn({ method: 'GET' })
+  .middleware([authFnMiddleware])
+  .inputValidator(z.object({ id: z.string() }))
+  .handler(async ({ data, context }) => {
+    const item = await prisma.savedItem.findUnique({
+      where: {
+        id: data.id,
+        userId: context.session?.user.id,
+      },
+    })
+    if (!item) {
+      throw notFound()
+    }
+    return item
   })

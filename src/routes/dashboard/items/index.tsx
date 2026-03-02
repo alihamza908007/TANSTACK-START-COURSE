@@ -16,7 +16,7 @@ import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import { Copy, Inbox } from 'lucide-react'
 import { zodValidator } from '@tanstack/zod-adapter'
 import z from 'zod'
-import { useEffect, useState } from 'react'
+import { Suspense, use, useEffect, useState } from 'react'
 import {
   Empty,
   EmptyContent,
@@ -25,18 +25,50 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from '@/components/ui/empty'
+import { Skeleton } from '@/components/ui/skeleton'
 
 const itemsSearchSchema = z.object({
   q: z.string().default(''),
   status: z.union([z.literal('all'), z.nativeEnum(ItemStatus)]).default('all'),
 })
 
+type ItemsSearch = z.infer<typeof itemsSearchSchema>
+
 export const Route = createFileRoute('/dashboard/items/')({
   component: RouteComponent,
-  loader: () => getItemsFn(),
+  loader: () => ({ itemsPromise: getItemsFn() }),
   validateSearch: zodValidator(itemsSearchSchema),
 })
-type ItemsSearch = z.infer<typeof itemsSearchSchema>
+
+function ItemsGridSkeleton() {
+  return (
+    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+      {Array.from({ length: 6 }).map((_, i) => (
+        <Card key={i} className="group overflow-hidden transition-all pt-0">
+          <div className="aspect-video w-full bg-muted">
+            <Skeleton className="h-full w-full" />
+          </div>
+
+          <CardHeader className="space-y-3 pt-4">
+            <div className="flex items-center justify-between gap-2">
+              <Skeleton className="h-6 w-20 rounded-full" />
+
+              <Skeleton className="size-8 rounded-md" />
+            </div>
+
+            <div className="space-y-2">
+              <Skeleton className="h-6 w-[90%]" />
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Skeleton className="h-4 w-24" />
+            </div>
+          </CardHeader>
+        </Card>
+      ))}
+    </div>
+  )
+}
 
 function ItemsList({
   q,
@@ -45,9 +77,10 @@ function ItemsList({
 }: {
   q: ItemsSearch['q']
   status: ItemsSearch['status']
-  data: Awaited<ReturnType<typeof getItemsFn>>
+  data: ReturnType<typeof getItemsFn>
 }) {
-  const filteredItems = data.filter((item) => {
+  const items = use(data)
+  const filteredItems = items.filter((item) => {
     const matchQuery =
       q === '' ||
       item.title?.toLowerCase().includes(q.toLowerCase()) ||
@@ -65,17 +98,17 @@ function ItemsList({
             <Inbox className="size-12" />
           </EmptyMedia>
           <EmptyTitle>
-            {data.length === 0
+            {items.length === 0
               ? 'No saved items found'
               : 'No matching items found'}
           </EmptyTitle>
           <EmptyDescription>
-            {data.length === 0
+            {items.length === 0
               ? 'Import a URL to get started with saving your content'
               : 'No items match your current search filters'}
           </EmptyDescription>
         </EmptyHeader>
-        {data.length === 0 && (
+        {items.length === 0 && (
           <EmptyContent>
             <Link className={buttonVariants()} to="/dashboard/import">
               Import URL
@@ -92,7 +125,11 @@ function ItemsList({
           key={item.id}
           className="group overflow-hidden transition-all hover:shadow-lg pt-0"
         >
-          <Link to="/dashboard" className="block">
+          <Link
+            to="/dashboard/items/$itemId"
+            params={{ itemId: item.id }}
+            className="block"
+          >
             {item.ogImage && (
               <div className="aspect-video w-full overflow-hidden bg-muted">
                 <img
@@ -141,7 +178,7 @@ function ItemsList({
 }
 
 function RouteComponent() {
-  const data = Route.useLoaderData()
+  const { itemsPromise } = Route.useLoaderData()
   const { status, q } = Route.useSearch()
   const [searchInput, setSearchInput] = useState(q)
   const navigate = useNavigate({ from: Route.fullPath })
@@ -189,7 +226,9 @@ function RouteComponent() {
         </Select>
       </div>
 
-      <ItemsList q={q} status={status} data={data} />
+      <Suspense fallback={ItemsGridSkeleton()}>
+        <ItemsList q={q} status={status} data={itemsPromise} />
+      </Suspense>
     </div>
   )
 }
